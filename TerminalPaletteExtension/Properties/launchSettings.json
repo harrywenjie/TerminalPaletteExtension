@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "TerminalPaletteExtension (Package)": {
+      "commandName": "MsixPackage",
+      "doNotLaunchApp": true
+    },
+    "TerminalPaletteExtension (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
