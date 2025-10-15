@@ -1,8 +1,8 @@
-﻿// File: Commands/LaunchTerminalProfileCommand.cs
+// File: Commands/LaunchTerminalProfileCommand.cs
 using Microsoft.CommandPalette.Extensions.Toolkit;
-using System.Diagnostics;
 using System;
-using System.Threading;
+using System.Diagnostics;
+using System.Linq;
 
 namespace TerminalPaletteExtension.Commands;
 
@@ -10,10 +10,8 @@ internal sealed partial class LaunchTerminalProfileCommand : InvokableCommand
 {
     private readonly string _profileGuid;
 
-    // We don't display this command directly, so Name/Icon might not be strictly needed  
-    // but it's good practice to provide them.  
-    public override string Name => "Launch Terminal Profile"; // Generic name  
-    public override IconInfo Icon => new("\uE756"); // Example: Terminal icon  
+    public override string Name => "Launch Terminal Profile";
+    public override IconInfo Icon => new("\uE756");
 
     public LaunchTerminalProfileCommand(string profileGuid)
     {
@@ -24,35 +22,28 @@ internal sealed partial class LaunchTerminalProfileCommand : InvokableCommand
     {
         try
         {
-            // Use wt.exe command line interface to open a specific profile  
             ProcessStartInfo startInfo = new()
             {
                 FileName = "wt.exe",
-                Arguments = $"--profile \"{_profileGuid}\"", // Use the profile GUID  
-                UseShellExecute = true, // Use ShellExecute to find wt.exe correctly            
+                Arguments = $"--profile \"{_profileGuid}\"",
+                UseShellExecute = true,
                 CreateNoWindow = false,
-                WindowStyle = ProcessWindowStyle.Normal
+                WindowStyle = ProcessWindowStyle.Normal,
             };
 
-            var process = Process.Start(startInfo);
+            NativeMethods.AllowSetForegroundWindow(NativeMethods.ASFW_ANY);
+            Process? process = Process.Start(startInfo);
 
-            // Give the terminal a moment to initialize
             if (process != null)
             {
-                // Wait a short period to allow the window to be created
-                System.Threading.Thread.Sleep(300);
+                NativeMethods.AllowSetForegroundWindow(process.Id);
+                WaitForInputIdleSafe(process);
 
-                // Try to ensure window is in foreground
-                if (!process.HasExited)
+                IntPtr terminalHandle = ResolveTerminalWindowHandle(process);
+                if (terminalHandle != IntPtr.Zero)
                 {
-                    // Refresh process info to get latest window handle
-                    process.Refresh();
-
-                    if (process.MainWindowHandle != IntPtr.Zero)
-                    {
-                        // Set foreground window using Windows API
-                        NativeMethods.SetForegroundWindow(process.MainWindowHandle);
-                    }
+                    NativeMethods.ShowWindow(terminalHandle, NativeMethods.SW_RESTORE);
+                    NativeMethods.SetForegroundWindow(terminalHandle);
                 }
             }
 
@@ -60,9 +51,63 @@ internal sealed partial class LaunchTerminalProfileCommand : InvokableCommand
         }
         catch (Exception ex)
         {
-            // Provide a longer-lasting, more detailed error message  
             return CommandResult.ShowToast($"{ex.Message}");
         }
     }
 
+    private static void WaitForInputIdleSafe(Process process)
+    {
+        try
+        {
+            if (!process.HasExited)
+            {
+                process.WaitForInputIdle(3000);
+            }
+        }
+        catch (InvalidOperationException)
+        {
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+        }
+        catch (NotSupportedException)
+        {
+        }
+    }
+
+    private static IntPtr ResolveTerminalWindowHandle(Process? launchedProcess)
+    {
+        if (launchedProcess is { HasExited: false })
+        {
+            launchedProcess.Refresh();
+            if (launchedProcess.MainWindowHandle != IntPtr.Zero)
+            {
+                return launchedProcess.MainWindowHandle;
+            }
+        }
+
+        Process[] terminalProcesses = Process.GetProcessesByName("WindowsTerminal");
+        try
+        {
+            Process? candidate = terminalProcesses
+                .Where(p => !p.HasExited)
+                .OrderByDescending(p => p.StartTime)
+                .FirstOrDefault();
+
+            if (candidate != null)
+            {
+                candidate.Refresh();
+                return candidate.MainWindowHandle;
+            }
+        }
+        finally
+        {
+            foreach (Process proc in terminalProcesses)
+            {
+                proc.Dispose();
+            }
+        }
+
+        return IntPtr.Zero;
+    }
 }
