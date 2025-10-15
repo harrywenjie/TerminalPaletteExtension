@@ -17,7 +17,7 @@ namespace TerminalPaletteExtension.Services;
 // Add other related types if necessary, though usually the root type is enough if it contains the others
 // [JsonSerializable(typeof(ProfileSettings))]
 // [JsonSerializable(typeof(TerminalProfile))]
-internal partial class SourceGenerationContext : JsonSerializerContext
+internal sealed partial class SourceGenerationContext : JsonSerializerContext
 {
     // The compiler generates the implementation for this partial class
 }
