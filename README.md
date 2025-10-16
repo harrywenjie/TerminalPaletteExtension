@@ -9,6 +9,13 @@ Terminal Palette Extension adds rich Windows Terminal profile shortcuts to the W
 - Remembers the previous window focus and brings the launched Terminal window forward automatically.
 - Respects your Windows Terminal configuration—no extra setup required.
 
+<p align="center">
+  <img src="./docs/images/menu1.png" width="30%" />
+  <img src="./docs/images/menu2.png" width="30%" />
+  <img src="./docs/images/menu3.png" width="30%" />
+</p>
+
+
 ## Installation
 1. Download the latest `AppPackages` zip from the [GitHub Releases](../../releases) page.
 2. Extract the archive. You will find a `.cer` file and a `.msixbundle`.
@@ -28,8 +35,8 @@ Terminal Palette Extension adds rich Windows Terminal profile shortcuts to the W
 5. Launch Windows Command Palette to verify the new “Terminal Palette” provider appears.
 
 ## Usage
-1. Open the Windows Command Palette (use the shortcut configured on your build of Windows; in current preview builds it defaults to `Win` + `Shift` + `C`).
-2. Type `Terminal Palette` and select the provider.
+1. Open the Windows Command Palette (default shortcut `Win` + `Alt` + `Space`).
+2. Type `Terminal Palette` and select the provider. Or you can go into settings and set a shortcut directly for this extension. (e.g. `Win` + `Alt` + `p`)
 3. Choose between `SSH Connections` or `Local Profiles`, then pick the profile you want.
 4. The extension starts the profile via `wt.exe` and focuses the new Terminal window automatically.
 
